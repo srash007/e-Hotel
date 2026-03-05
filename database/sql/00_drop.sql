@@ -3,8 +3,6 @@
 -- Drops all objects for a clean reset (PostgreSQL)
 -- ============================================================
 
-\set ON_ERROR_STOP on
-
 -- Drop views first
 DROP VIEW IF EXISTS view_available_rooms_per_area CASCADE;
 DROP VIEW IF EXISTS view_hotel_capacity CASCADE;
