@@ -4,7 +4,9 @@
 # Authors
 
 Sarah Rashiwa
+
 Stefan Wakata
+
 Adam Sawadogo
 
 Course Project – Database Systems  
