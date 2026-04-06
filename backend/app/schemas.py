@@ -86,6 +86,17 @@ class EmployeeCreate(BaseModel):
     ssn_sin: str
 
 
+class EmployeeUpdate(BaseModel):
+    hotel_id: Optional[int] = None
+    full_name: Optional[str] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    postal_code: Optional[str] = None
+    ssn_sin: Optional[str] = None
+
+
 class HotelCreate(BaseModel):
     chain_id: int
     hotel_name: str
@@ -98,6 +109,18 @@ class HotelCreate(BaseModel):
     area: str
 
 
+class HotelUpdate(BaseModel):
+    chain_id: Optional[int] = None
+    hotel_name: Optional[str] = None
+    star_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    postal_code: Optional[str] = None
+    area: Optional[str] = None
+
+
 class RoomCreate(BaseModel):
     hotel_id: int
     room_number: str
@@ -105,4 +128,13 @@ class RoomCreate(BaseModel):
     capacity: RoomCapacity
     view_type: RoomView = "none"
     extendable: bool = False
+    problem_notes: Optional[str] = None
+
+
+class RoomUpdate(BaseModel):
+    room_number: Optional[str] = None
+    price_per_night: Optional[float] = Field(default=None, ge=0)
+    capacity: Optional[RoomCapacity] = None
+    view_type: Optional[RoomView] = None
+    extendable: Optional[bool] = None
     problem_notes: Optional[str] = None
