@@ -5,7 +5,7 @@ import AdminPage from './pages/AdminPage'
 import ViewsPage from './pages/ViewsPage'
 
 const PAGES = [
-  { label: '🏨 Find a Room', component: <CustomerPage /> },
+  { label: '🔍 Find a Room', component: <CustomerPage /> },
   { label: '👷 Employee', component: <EmployeePage /> },
   { label: '⚙️ Admin', component: <AdminPage /> },
   { label: '📊 SQL Views', component: <ViewsPage /> },
@@ -17,7 +17,10 @@ export default function App() {
   return (
     <>
       <nav>
-        <span className="logo">🏨 e-Hotels</span>
+        <span className="logo">
+          <span className="logo-icon">🏨</span>
+          e-Hotels
+        </span>
         {PAGES.map((p, i) => (
           <button
             key={p.label}
@@ -28,7 +31,9 @@ export default function App() {
           </button>
         ))}
       </nav>
-      {PAGES[current].component}
+      <div key={current}>
+        {PAGES[current].component}
+      </div>
     </>
   )
 }
