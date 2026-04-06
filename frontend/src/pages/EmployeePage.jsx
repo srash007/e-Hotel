@@ -3,10 +3,11 @@ import {
   getActiveBookings, cancelBooking,
   checkIn, walkIn,
   getActiveRentings,
-  addPayment, listPayments
+  addPayment, listPayments,
+  listCustomers, listEmployees, listRooms
 } from '../api'
 
-const TABS = ['Active Bookings', 'Check-In', 'Walk-In', 'Active Rentings', 'Payments']
+const TABS = ['📋 Bookings', '✅ Check-In', '🚶 Walk-In', '🏨 Rentings', '💳 Payments']
 
 export default function EmployeePage() {
   const [tab, setTab] = useState(0)
@@ -16,7 +17,8 @@ export default function EmployeePage() {
 
   return (
     <div className="page">
-      <h1>👷 Employee Panel</h1>
+      <h1>👷 Employee Dashboard</h1>
+      <p className="page-subtitle">Manage bookings, check-ins, walk-in rentals, and payments.</p>
       {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
       <div className="tabs">
@@ -34,7 +36,6 @@ export default function EmployeePage() {
   )
 }
 
-// ── Active Bookings ──────────────────────────────────────────
 function ActiveBookings({ showMsg }) {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -57,32 +58,32 @@ function ActiveBookings({ showMsg }) {
     } catch (e) { showMsg('error', e.message) }
   }
 
-  if (loading) return <p>Loading…</p>
+  if (loading) return <div className="loading-container"><div className="spinner" /><span>Loading bookings…</span></div>
 
   return (
-    <div className="card">
-      <h2>Active Bookings</h2>
+    <div className="card animate-in">
+      <h2>Active Bookings <span className="badge">{bookings.length}</span></h2>
       {bookings.length === 0
-        ? <p className="empty">No active bookings.</p>
+        ? <p className="empty">No active bookings at the moment.</p>
         : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>ID</th><th>Customer</th><th>Hotel</th><th>Room</th>
-                  <th>Start</th><th>End</th><th>Status</th><th>Action</th>
+                  <th>Check-in</th><th>Check-out</th><th>Status</th><th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {bookings.map(b => (
                   <tr key={b.booking_id}>
-                    <td>#{b.booking_id}</td>
-                    <td>{b.customer_name} <small>(#{b.customer_id})</small></td>
+                    <td><strong>#{b.booking_id}</strong></td>
+                    <td>{b.customer_name} <small>ID: {b.customer_id}</small></td>
                     <td>{b.hotel_name}</td>
                     <td>{b.room_number}</td>
                     <td>{b.start_date}</td>
                     <td>{b.end_date}</td>
-                    <td>{b.status}</td>
+                    <td><span className="amenity-tag">{b.status}</span></td>
                     <td>
                       <button className="btn btn-danger btn-sm" onClick={() => handleCancel(b.booking_id)}>
                         Cancel
@@ -98,41 +99,56 @@ function ActiveBookings({ showMsg }) {
   )
 }
 
-// ── Check-In ─────────────────────────────────────────────────
 function CheckIn({ showMsg }) {
-  const [form, setForm] = useState({ booking_id: '', employee_id: '' })
-  const [result, setResult] = useState(null)
+  const [bookings, setBookings] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [selectedBooking, setSelectedBooking] = useState('')
+  const [selectedEmployee, setSelectedEmployee] = useState('')
+
+  useEffect(() => {
+    getActiveBookings().then(setBookings).catch(console.error)
+    listEmployees().then(setEmployees).catch(console.error)
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setResult(null)
     try {
-      const res = await checkIn(Number(form.booking_id), Number(form.employee_id))
+      const res = await checkIn(Number(selectedBooking), Number(selectedEmployee))
       showMsg('success', `✅ Check-in complete! Renting #${res.renting_id} created.`)
-      setResult(res)
-      setForm({ booking_id: '', employee_id: '' })
+      setSelectedBooking('')
+      setSelectedEmployee('')
+      // Refresh bookings
+      getActiveBookings().then(setBookings).catch(console.error)
     } catch (e) { showMsg('error', e.message) }
   }
 
   return (
-    <div className="card">
-      <h2>Check-In from Booking</h2>
-      <p className="mt-1" style={{ color: '#555', marginBottom: '1rem' }}>
-        Use this when a customer arrives with an existing booking.
-      </p>
+    <div className="card animate-in">
+      <h2>✅ Check-In from Booking</h2>
+      <p className="description">Transform an existing booking into a renting when the customer arrives.</p>
       <form onSubmit={handleSubmit}>
         <div className="form-grid">
           <div className="form-group">
-            <label>Booking ID *</label>
-            <input type="number" required value={form.booking_id}
-              onChange={e => setForm(f => ({ ...f, booking_id: e.target.value }))}
-              placeholder="e.g. 5" />
+            <label>Select Booking *</label>
+            <select required value={selectedBooking} onChange={e => setSelectedBooking(e.target.value)}>
+              <option value="">— Choose a booking —</option>
+              {bookings.map(b => (
+                <option key={b.booking_id} value={b.booking_id}>
+                  #{b.booking_id} — {b.customer_name} → {b.hotel_name} Rm {b.room_number} ({b.start_date} to {b.end_date})
+                </option>
+              ))}
+            </select>
           </div>
           <div className="form-group">
-            <label>Your Employee ID *</label>
-            <input type="number" required value={form.employee_id}
-              onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
-              placeholder="e.g. 12" />
+            <label>Select Employee *</label>
+            <select required value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
+              <option value="">— Choose an employee —</option>
+              {employees.map(emp => (
+                <option key={emp.employee_id} value={emp.employee_id}>
+                  #{emp.employee_id} — {emp.full_name} ({emp.hotel_name})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <button className="btn btn-success" type="submit">✅ Check-In Customer</button>
@@ -141,11 +157,19 @@ function CheckIn({ showMsg }) {
   )
 }
 
-// ── Walk-In ───────────────────────────────────────────────────
 function WalkIn({ showMsg }) {
+  const [customers, setCustomers] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [rooms, setRooms] = useState([])
   const [form, setForm] = useState({
     customer_id: '', room_id: '', start_date: '', end_date: '', employee_id: ''
   })
+
+  useEffect(() => {
+    listCustomers().then(setCustomers).catch(console.error)
+    listEmployees().then(setEmployees).catch(console.error)
+    listRooms().then(setRooms).catch(console.error)
+  }, [])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -166,37 +190,51 @@ function WalkIn({ showMsg }) {
   }
 
   return (
-    <div className="card">
-      <h2>Walk-In Renting (No Booking)</h2>
-      <p className="mt-1" style={{ color: '#555', marginBottom: '1rem' }}>
-        Use this when a customer arrives without a prior booking.
-      </p>
+    <div className="card animate-in">
+      <h2>🚶 Walk-In Renting</h2>
+      <p className="description">Create a direct renting for a customer who shows up without a booking.</p>
       <form onSubmit={handleSubmit}>
         <div className="form-grid">
           <div className="form-group">
-            <label>Customer ID *</label>
-            <input type="number" required value={form.customer_id}
-              onChange={e => set('customer_id', e.target.value)} placeholder="e.g. 3" />
+            <label>Customer *</label>
+            <select required value={form.customer_id} onChange={e => set('customer_id', e.target.value)}>
+              <option value="">— Choose a customer —</option>
+              {customers.map(c => (
+                <option key={c.customer_id} value={c.customer_id}>
+                  #{c.customer_id} — {c.full_name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="form-group">
-            <label>Room ID *</label>
-            <input type="number" required value={form.room_id}
-              onChange={e => set('room_id', e.target.value)} placeholder="e.g. 17" />
+            <label>Room *</label>
+            <select required value={form.room_id} onChange={e => set('room_id', e.target.value)}>
+              <option value="">— Choose a room —</option>
+              {rooms.map(r => (
+                <option key={r.room_id} value={r.room_id}>
+                  #{r.room_id} — {r.hotel_name} Rm {r.room_number} (${Number(r.price_per_night).toFixed(0)}/n)
+                </option>
+              ))}
+            </select>
           </div>
           <div className="form-group">
             <label>Start Date *</label>
-            <input type="date" required value={form.start_date}
-              onChange={e => set('start_date', e.target.value)} />
+            <input type="date" required value={form.start_date} onChange={e => set('start_date', e.target.value)} />
           </div>
           <div className="form-group">
             <label>End Date *</label>
-            <input type="date" required value={form.end_date}
-              onChange={e => set('end_date', e.target.value)} />
+            <input type="date" required value={form.end_date} onChange={e => set('end_date', e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Your Employee ID *</label>
-            <input type="number" required value={form.employee_id}
-              onChange={e => set('employee_id', e.target.value)} placeholder="e.g. 12" />
+            <label>Employee *</label>
+            <select required value={form.employee_id} onChange={e => set('employee_id', e.target.value)}>
+              <option value="">— Choose an employee —</option>
+              {employees.map(emp => (
+                <option key={emp.employee_id} value={emp.employee_id}>
+                  #{emp.employee_id} — {emp.full_name} ({emp.hotel_name})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <button className="btn btn-success" type="submit">🏨 Create Walk-In Renting</button>
@@ -205,7 +243,6 @@ function WalkIn({ showMsg }) {
   )
 }
 
-// ── Active Rentings ───────────────────────────────────────────
 function ActiveRentings() {
   const [rentings, setRentings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -214,28 +251,28 @@ function ActiveRentings() {
     getActiveRentings().then(setRentings).catch(console.error).finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p>Loading…</p>
+  if (loading) return <div className="loading-container"><div className="spinner" /><span>Loading rentings…</span></div>
 
   return (
-    <div className="card">
-      <h2>Active Rentings</h2>
+    <div className="card animate-in">
+      <h2>Active Rentings <span className="badge">{rentings.length}</span></h2>
       {rentings.length === 0
-        ? <p className="empty">No active rentings.</p>
+        ? <p className="empty">No active rentings at the moment.</p>
         : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Renting ID</th><th>Booking ID</th><th>Customer</th>
-                  <th>Hotel</th><th>Room</th><th>Start</th><th>End</th><th>Employee</th>
+                  <th>ID</th><th>Booking</th><th>Customer</th>
+                  <th>Hotel</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Employee</th>
                 </tr>
               </thead>
               <tbody>
                 {rentings.map(r => (
                   <tr key={r.renting_id}>
-                    <td>#{r.renting_id}</td>
+                    <td><strong>#{r.renting_id}</strong></td>
                     <td>{r.booking_id ? `#${r.booking_id}` : '—'}</td>
-                    <td>{r.customer_name} <small>(#{r.customer_id})</small></td>
+                    <td>{r.customer_name} <small>ID: {r.customer_id}</small></td>
                     <td>{r.hotel_name}</td>
                     <td>{r.room_number}</td>
                     <td>{r.start_date}</td>
@@ -251,15 +288,18 @@ function ActiveRentings() {
   )
 }
 
-// ── Payments ──────────────────────────────────────────────────
 function Payments({ showMsg }) {
+  const [rentings, setRentings] = useState([])
   const [form, setForm] = useState({ renting_id: '', amount: '', method: 'cash' })
   const [payments, setPayments] = useState([])
 
   function loadPayments() {
     listPayments().then(setPayments).catch(console.error)
   }
-  useEffect(() => { loadPayments() }, [])
+  useEffect(() => {
+    loadPayments()
+    getActiveRentings().then(setRentings).catch(console.error)
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -276,15 +316,22 @@ function Payments({ showMsg }) {
   }
 
   return (
-    <>
+    <div className="animate-in">
       <div className="card">
-        <h2>Record a Payment</h2>
+        <h2>💳 Record a Payment</h2>
+        <p className="description">Insert a payment for an active renting.</p>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-group">
-              <label>Renting ID *</label>
-              <input type="number" required value={form.renting_id}
-                onChange={e => setForm(f => ({ ...f, renting_id: e.target.value }))} placeholder="e.g. 2" />
+              <label>Renting *</label>
+              <select required value={form.renting_id} onChange={e => setForm(f => ({ ...f, renting_id: e.target.value }))}>
+                <option value="">— Choose a renting —</option>
+                {rentings.map(r => (
+                  <option key={r.renting_id} value={r.renting_id}>
+                    #{r.renting_id} — {r.customer_name} @ {r.hotel_name} Rm {r.room_number}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label>Amount ($) *</label>
@@ -294,10 +341,10 @@ function Payments({ showMsg }) {
             <div className="form-group">
               <label>Method *</label>
               <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))}>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="online">Online</option>
-                <option value="transfer">Transfer</option>
+                <option value="cash">💵 Cash</option>
+                <option value="card">💳 Card</option>
+                <option value="online">🌐 Online</option>
+                <option value="transfer">🏦 Transfer</option>
               </select>
             </div>
           </div>
@@ -306,9 +353,9 @@ function Payments({ showMsg }) {
       </div>
 
       <div className="card">
-        <h2>Payment History</h2>
+        <h2>Payment History <span className="badge">{payments.length}</span></h2>
         {payments.length === 0
-          ? <p className="empty">No payments yet.</p>
+          ? <p className="empty">No payments recorded yet.</p>
           : (
             <div className="table-wrap">
               <table>
@@ -318,11 +365,11 @@ function Payments({ showMsg }) {
                 <tbody>
                   {payments.map(p => (
                     <tr key={p.payment_id}>
-                      <td>#{p.payment_id}</td>
+                      <td><strong>#{p.payment_id}</strong></td>
                       <td>#{p.renting_id}</td>
                       <td>{p.hotel_name}</td>
                       <td>{p.room_number}</td>
-                      <td>${Number(p.amount).toFixed(2)}</td>
+                      <td><strong>${Number(p.amount).toFixed(2)}</strong></td>
                       <td>{p.method}</td>
                       <td>{new Date(p.paid_at).toLocaleString()}</td>
                     </tr>
@@ -332,6 +379,6 @@ function Payments({ showMsg }) {
             </div>
           )}
       </div>
-    </>
+    </div>
   )
 }

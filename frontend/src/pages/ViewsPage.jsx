@@ -14,45 +14,73 @@ export default function ViewsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="page"><p>Loading views…</p></div>
+  if (loading) return <div className="page"><div className="loading-container"><div className="spinner" /><span>Loading views…</span></div></div>
   if (error) return <div className="page"><div className="alert alert-error">{error}</div></div>
+
+  const maxRooms = Math.max(...areaData.map(r => Number(r.available_rooms)), 1)
 
   return (
     <div className="page">
-      <h1>📊 Database Views</h1>
+      <h1>📊 SQL Database Views</h1>
+      <p className="page-subtitle">Real-time aggregated data from the database, computed via SQL Views (requirement 2f).</p>
 
-      {/* View 1 */}
-      <div className="card">
-        <h2>View 1 — Available Rooms per Area (today)</h2>
-        <p style={{ color: '#555', marginBottom: '1rem', fontSize: '0.9rem' }}>
-          Shows the number of rooms that are currently available (not booked or rented for today) in each area.
+      <div className="card animate-in">
+        <h2>View 1 — Available Rooms per Area <span className="badge">SQL View</span></h2>
+        <p className="description">
+          Number of rooms currently available (not booked or rented for today) in each area.
         </p>
         {areaData.length === 0
           ? <p className="empty">No data available.</p>
           : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Area</th><th>Available Rooms</th></tr>
-                </thead>
-                <tbody>
-                  {areaData.map(row => (
-                    <tr key={row.area}>
-                      <td>📍 {row.area}</td>
-                      <td><strong>{row.available_rooms}</strong></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
+                {areaData.map(row => (
+                  <div key={row.area} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ width: '140px', fontSize: '0.88rem', fontWeight: 500, color: '#475569', textAlign: 'right' }}>
+                      📍 {row.area}
+                    </span>
+                    <div style={{ flex: 1, background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', height: '28px' }}>
+                      <div style={{
+                        width: `${(Number(row.available_rooms) / maxRooms) * 100}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #2e6da4, #4a90c4)',
+                        borderRadius: '6px',
+                        minWidth: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        paddingRight: '8px',
+                        transition: 'width 0.5s ease-out'
+                      }}>
+                        <span style={{ color: '#fff', fontSize: '0.78rem', fontWeight: 700 }}>{row.available_rooms}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Area</th><th>Available Rooms</th></tr>
+                  </thead>
+                  <tbody>
+                    {areaData.map(row => (
+                      <tr key={row.area}>
+                        <td>📍 {row.area}</td>
+                        <td><strong>{row.available_rooms}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
       </div>
 
-      {/* View 2 */}
-      <div className="card">
-        <h2>View 2 — Aggregated Room Capacity per Hotel</h2>
-        <p style={{ color: '#555', marginBottom: '1rem', fontSize: '0.9rem' }}>
-          Shows the total number of rooms and aggregate bed capacity (single=1, double=2, triple=3, quad=4, suite=5) per hotel.
+      <div className="card animate-in" style={{ animationDelay: '0.1s' }}>
+        <h2>View 2 — Aggregated Room Capacity per Hotel <span className="badge">SQL View</span></h2>
+        <p className="description">
+          Total number of rooms and aggregate bed capacity (single=1, double=2, triple=3, quad=4, suite=5) per hotel.
         </p>
         {capacityData.length === 0
           ? <p className="empty">No data available.</p>
@@ -61,11 +89,11 @@ export default function ViewsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Hotel ID</th>
-                    <th>Hotel Name</th>
+                    <th>ID</th>
+                    <th>Hotel</th>
                     <th>Area</th>
-                    <th>Total Rooms</th>
-                    <th>Beds (Aggregated)</th>
+                    <th>Rooms</th>
+                    <th>Beds</th>
                     <th>Single</th>
                     <th>Double</th>
                     <th>Triple</th>
@@ -77,8 +105,8 @@ export default function ViewsPage() {
                   {capacityData.map(row => (
                     <tr key={row.hotel_id}>
                       <td>#{row.hotel_id}</td>
-                      <td>{row.hotel_name}</td>
-                      <td>{row.area}</td>
+                      <td><strong>{row.hotel_name}</strong></td>
+                      <td>📍 {row.area}</td>
                       <td><strong>{row.total_rooms}</strong></td>
                       <td><strong>{row.aggregated_capacity_beds}</strong></td>
                       <td>{row.num_single}</td>
